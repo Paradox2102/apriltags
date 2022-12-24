@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="NetworkVision" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/NetworkVision" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+					<Add option="-DR1080" />
+					<Add directory="/opt/vc/include" />
+					<Add directory="/opt/vc/include/interface" />
+					<Add directory="/opt/vc/include/interface/vcos/pthreads" />
+					<Add directory="RaspicamSrc" />
+					<Add directory="../apriltagCommon" />
+					<Add directory="/opt/opencv-4.1.0/include/opencv4" />
+				</Compiler>
+				<Linker>
+					<Add option="`pkg-config --libs --cflags opencv`" />
+					<Add library="jpeg" />
+					<Add library="pthread" />
+					<Add library="mmal" />
+					<Add library="mmal_core" />
+					<Add library="mmal_util" />
+					<Add library="mmal_vc_client" />
+					<Add library="../../apriltag/libapriltag.a" />
+					<Add directory="/opt/vc/lib" />
+				</Linker>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/apriltagVision" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+					<Add option="-DR1080" />
+					<Add directory="/opt/vc/include" />
+					<Add directory="/opt/vc/include/interface" />
+					<Add directory="/opt/vc/include/interface/vcos/pthreads" />
+					<Add directory="RaspicamSrc" />
+					<Add directory="../apriltagCommon" />
+					<Add directory="/opt/opencv-4.1.0/include/opencv4" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+					<Add option="`pkg-config --libs --cflags opencv`" />
+					<Add library="jpeg" />
+					<Add library="pthread" />
+					<Add library="mmal" />
+					<Add library="mmal_core" />
+					<Add library="mmal_util" />
+					<Add library="mmal_vc_client" />
+					<Add library="../../apriltag/libapriltag.a" />
+					<Add directory="/opt/vc/lib" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add option="-fexceptions" />
+		</Compiler>
+		<Unit filename="../apriltagCommon/ProcessApriltags.cpp" />
+		<Unit filename="../apriltagCommon/ProcessApriltags.h" />
+		<Unit filename="../apriltagCommon/ProcessApriltagsFast.cpp" />
+		<Unit filename="../apriltagCommon/ProcessApriltagsFast.h" />
+		<Unit filename="../apriltagCommon/apriltagVision.cpp" />
+		<Unit filename="../apriltagCommon/cameraCapture.h" />
+		<Unit filename="../apriltagCommon/opencv.cpp" />
+		<Unit filename="ImageProcessing.h" />
+		<Unit filename="ProcessImage.h" />
+		<Unit filename="RaspicamSrc/private/exceptions.h" />
+		<Unit filename="RaspicamSrc/private/private_impl.cpp" />
+		<Unit filename="RaspicamSrc/private/private_impl.h" />
+		<Unit filename="RaspicamSrc/private/private_types.h" />
+		<Unit filename="RaspicamSrc/private/threadcondition.cpp" />
+		<Unit filename="RaspicamSrc/private/threadcondition.h" />
+		<Unit filename="RaspicamSrc/private_still/private_still_impl.cpp" />
+		<Unit filename="RaspicamSrc/private_still/private_still_impl.h" />
+		<Unit filename="RaspicamSrc/raspicam.cpp" />
+		<Unit filename="RaspicamSrc/raspicam.h" />
+		<Unit filename="RaspicamSrc/raspicam_still.cpp" />
+		<Unit filename="RaspicamSrc/raspicam_still.h" />
+		<Unit filename="RaspicamSrc/raspicamtypes.h" />
+		<Unit filename="RaspicamSrc/scaler.h" />
+		<Unit filename="cameraCapture.cpp" />
+		<Extensions>
+			<code_completion />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

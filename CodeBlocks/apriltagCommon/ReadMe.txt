@@ -1,0 +1,1 @@
+This folder contains the code that is common between the two Apriltag programs.

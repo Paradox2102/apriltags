@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="apriltagVision" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/apriltagVision" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+					<Add option="-DINNOMAKER" />
+					<Add directory="../apriltagVisionBW" />
+					<Add directory="/opt/opencv-4.1.0/include/opencv4" />
+				</Compiler>
+				<Linker>
+					<Add option="`pkg-config --libs --cflags opencv`" />
+					<Add library="jpeg" />
+					<Add library="pthread" />
+					<Add library="../../apriltag/libapriltag.a" />
+				</Linker>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/apriltagVision" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O3" />
+					<Add option="-DINNOMAKER" />
+					<Add directory="../apriltagVisionBW" />
+					<Add directory="/opt/opencv-4.1.0/include/opencv4" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+					<Add option="`pkg-config --libs --cflags opencv`" />
+					<Add library="jpeg" />
+					<Add library="pthread" />
+					<Add library="../../apriltag/libapriltag.a" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add option="-fexceptions" />
+		</Compiler>
+		<Unit filename="../apriltagCommon/ProcessApriltags.cpp" />
+		<Unit filename="../apriltagCommon/ProcessApriltags.h" />
+		<Unit filename="../apriltagCommon/ProcessApriltagsFast.cpp" />
+		<Unit filename="../apriltagCommon/ProcessApriltagsFast.h" />
+		<Unit filename="../apriltagCommon/apriltagVision.cpp" />
+		<Unit filename="../apriltagCommon/opencv.cpp" />
+		<Unit filename="../apriltagCommon/opencv.h" />
+		<Unit filename="cameraCapture.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="cameraCapture.h" />
+		<Extensions />
+	</Project>
+</CodeBlocks_project_file>
