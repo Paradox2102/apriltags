@@ -362,7 +362,7 @@ public:
                     SaveImage("image", imageData);
                     for (ImageRegion * pRegion : *pRegions)
                     {
-                        printf("%0.2f,%0.2f,%0.2f,%0.1f,%0.1f,%0.1f\n",  pRegion->m_rvec[0], pRegion->m_rvec[1], pRegion->m_rvec[2], pRegion->m_tvec[0], pRegion->m_tvec[1], pRegion->m_tvec[2]);
+                        printf("%d,%0.2f,%0.2f,%0.2f,%0.1f,%0.1f,%0.1f\n",  pRegion->m_tag, pRegion->m_rvec[0], pRegion->m_rvec[1], pRegion->m_rvec[2], pRegion->m_tvec[0], pRegion->m_tvec[1], pRegion->m_tvec[2]);
                     }
                     g_saveData = false;
 				}

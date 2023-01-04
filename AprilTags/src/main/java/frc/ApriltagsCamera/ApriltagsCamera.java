@@ -22,12 +22,12 @@ import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
-
 /**
  * 
  * @author John Gaby
  * 
- * @brief The ApriltagsCamera class handles communication with the Raspberry Pi Camera.
+ * @brief The ApriltagsCamera class handles communication with the Raspberry Pi
+ *        Camera.
  * 
  *        This class allows you to connect to the Data server of the Raspberry
  *        Pi and receive information about the image frames processed by the
@@ -70,7 +70,8 @@ public class ApriltagsCamera implements frc.ApriltagsCamera.Network.NetworkRecei
 		public double m_corners[][] = new double[4][2];
 
 		// ! @cond PRIVATE
-		public ApriltagsCameraRegion(int tag, double r0, double r1, double r2, double t0, double t1, double t2, double x0, double y0, double x1, double y1, double x2, double y2, double x3, double y3) {
+		public ApriltagsCameraRegion(int tag, double r0, double r1, double r2, double t0, double t1, double t2,
+				double x0, double y0, double x1, double y1, double x2, double y2, double x3, double y3) {
 			m_tag = tag;
 			m_rvec[0] = r0;
 			m_rvec[1] = r1;
@@ -89,6 +90,8 @@ public class ApriltagsCamera implements frc.ApriltagsCamera.Network.NetworkRecei
 		}
 		// ! @endcond
 	}
+
+	int m_count;
 
 	/**
 	 * @brief The ApriltagsCameraRegions specifies list of detected regions
@@ -111,9 +114,11 @@ public class ApriltagsCamera implements frc.ApriltagsCamera.Network.NetworkRecei
 		public ArrayList<ApriltagsCameraRegion> m_regions = new ArrayList<ApriltagsCameraRegion>();
 
 		// ! @cond PRIVATE
-		protected ApriltagsCameraRegions(int frameNo, int targetVertPos, int targetHorzPos, int width, int height, int lostFrames,
+		protected ApriltagsCameraRegions(int frameNo, int targetVertPos, int targetHorzPos, int width, int height,
+				int lostFrames,
 				long captureTime, int procTime, int fps) {
-			Logger.log("ApriltagsCameraRegions", -1, String.format("ApriltagsCameraRegions(): width = %d, height = %d", width, height));
+			Logger.log("ApriltagsCameraRegions", -1,
+					String.format("ApriltagsCameraRegions(): width = %d, height = %d", width, height));
 
 			m_frameNo = frameNo;
 			m_targetVertPos = targetVertPos;
@@ -126,7 +131,8 @@ public class ApriltagsCamera implements frc.ApriltagsCamera.Network.NetworkRecei
 			m_procTime = procTime;
 		}
 
-		protected void addRegion(int tag, double r0, double r1, double r2, double t0, double t1, double t2, double x0, double y0, double x1, double y1, double x2, double y2, double x3, double y3) {
+		protected void addRegion(int tag, double r0, double r1, double r2, double t0, double t1, double t2, double x0,
+				double y0, double x1, double y1, double x2, double y2, double x3, double y3) {
 			m_regions.add(new ApriltagsCameraRegion(tag, r0, r1, r2, t0, t1, t2, x0, y0, x1, y1, x2, y2, x3, y3));
 		}
 		// ! @endcond
@@ -152,6 +158,89 @@ public class ApriltagsCamera implements frc.ApriltagsCamera.Network.NetworkRecei
 			};
 			return (null);
 		}
+
+		/**
+		 * Class for the return of the robot position
+		 */
+		public class RobotPos {
+			public double m_x; // Absolute x position of the robot
+			public double m_y; // Absolute y position of the robot
+
+			public RobotPos(double x, double y) {
+				m_x = x;
+				m_y = y;
+			}
+		}
+
+		/*
+		 * Computes relative position of the robot with respect to the specified Apriltag
+		 *
+		 */
+		private RobotPos computePosition(
+				ApriltagsCameraRegion region, // Specifies the region information for the tag,
+				double yaw) { // Specifies the current orientation of the robot in radians from the positive x
+								// axis
+
+			double cx = region.m_tvec[0];
+			double cz = region.m_tvec[2];
+
+			double a = Math.atan2(cx, cz);
+			double b = yaw - Math.PI/2 - a;
+			double d = Math.sqrt(cx*cx + cz*cz);
+			double dx = d * Math.sin(b);
+			double dy = d * Math.cos(b);
+
+			// if ((m_count++ % 50) == 0)
+			// {
+			// 	System.out.println(String.format("%d,cx=%f,cy=%f,a=%f,b=%f,d=%f,dx=%f,dy=%f", System.currentTimeMillis(), cx,cz, a * 180 / Math.PI, b * 180 / Math.PI, d, dx, dy));
+			// }
+
+			return new RobotPos(dx, dy);
+		}
+
+		/*
+		 * Finds the location of the tag with the specified ID
+		 */
+		ApriltagLocation findTag(ApriltagLocation[] tags, int tagId) {
+			for (int i = 0; i < tags.length; i++) {
+				if (tags[i].m_tag == tagId) {
+					return (tags[i]);
+				}
+			}
+
+			return (null);
+		}
+
+		/*
+		 * Computes the absolute position of the robot using the infomation
+		 * provided by the visible Apriltags
+		 */
+		public RobotPos ComputeRobotPosition(ApriltagLocation[] tags, double yaw) {
+			double x = 0;
+			double y = 0;
+			int nRegions = m_regions.size();
+			int count = 0;
+
+			if (nRegions < 1) {
+				return (null);
+			}
+
+			for (int i = 0; i < nRegions; i++) {
+				ApriltagsCameraRegion region = getRegion(i);
+				ApriltagLocation tag = findTag(tags, region.m_tag);
+
+				if (tag != null) {
+					RobotPos pos = computePosition(region, yaw);
+
+					x += tag.m_x + pos.m_x;
+					y += tag.m_y - pos.m_y;
+					count++;
+				}
+			}
+
+			return new RobotPos(x / count, y / count);
+		}
+
 	}
 
 	private static final int k_syncRetry = 5000;
@@ -291,49 +380,6 @@ public class ApriltagsCamera implements frc.ApriltagsCamera.Network.NetworkRecei
 	// ! @endcond
 
 	/**
-	 * if the Raspberry Pi is configured to controll the camera lights using
-	 * pins 11 and 12, this command will turn the lights on or off
-	 * 
-	 * @param value - Bit zero controls pin 11 and bit one controls pin 12
-	 */
-	public void setLight(int value) {
-		m_network.sendMessage(String.format("L %d", value));
-	}
-	
-	// public void SendJpeg(boolean send)
-	// {
-	// 	m_network.SendMessage("J" + (send ? "y" : "n"));
-	// }
-
-	/**
-	 * Specifies which capture profile should be used.
-	 * 
-	 * @param profile - Specifies the profile to use (0-3)
-	 */
-	public void setProfile(int profile) {
-		if ((profile >= 0) && (profile < 4)) {
-			m_network.sendMessage(String.format("P %d", profile));
-		}
-	}
-
-	/**
-	 * Instructs the Raspberry Pi to start logging the camera data on the Pi's disk
-	 * This can be useful for debugging
-	 *
-	 */
-	public void startPiLog() {
-		m_network.sendMessage("ls");
-	}
-
-	/**
-	 * Ends the Raspberry Pi logging
-	 *
-	 */
-	public void endPiLog() {
-		m_network.sendMessage("le");
-	}
-
-	/**
 	 * Connects to the Raspberry Pi Data server
 	 *
 	 * @param host - Specifies IP for the host
@@ -364,7 +410,8 @@ public class ApriltagsCamera implements frc.ApriltagsCamera.Network.NetworkRecei
 		long a[] = parseLong(args, 9);
 
 		if (a != null) {
-			m_nextRegions = new ApriltagsCameraRegions((int) a[0], (int) a[1], (int) a[2], (int) a[3], (int) a[4], (int) a[5],
+			m_nextRegions = new ApriltagsCameraRegions((int) a[0], (int) a[1], (int) a[2], (int) a[3], (int) a[4],
+					(int) a[5],
 					a[6], (int) a[7], (int) a[8]);
 
 			int delay = (int) (System.currentTimeMillis() - m_nextRegions.m_captureTime);
@@ -423,7 +470,8 @@ public class ApriltagsCamera implements frc.ApriltagsCamera.Network.NetworkRecei
 		double a[] = parseDouble(args, 15);
 
 		if ((a != null) && (m_nextRegions != null)) {
-			m_nextRegions.addRegion((int) a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14]);
+			m_nextRegions.addRegion((int) a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11],
+					a[12], a[13], a[14]);
 		}
 	}
 
@@ -439,8 +487,8 @@ public class ApriltagsCamera implements frc.ApriltagsCamera.Network.NetworkRecei
 	/**
 	 * Returns the latest set of camera regions. Note that the data is received from
 	 * the camera in a separate thread so calling this twice in a row can generate a
-	 * different result. Once you retrieve and instance of ApriltagsCameraRegions however,
-	 * you can be assured that it will NOT be modified when a new frame is received.
+	 * different result. Once you retrieve and instance of ApriltagsCameraRegions
+	 * however, you can be assured that it will NOT be modified when a new frame is received.
 	 *
 	 */
 	public ApriltagsCameraRegions getRegions() {

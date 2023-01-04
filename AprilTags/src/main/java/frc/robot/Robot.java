@@ -8,10 +8,13 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import frc.ApriltagsCamera.ApriltagLocation;
 import frc.ApriltagsCamera.ApriltagsCamera;
 import frc.ApriltagsCamera.Logger;
+import frc.ApriltagsCamera.PositionServer;
 import frc.ApriltagsCamera.ApriltagsCamera.ApriltagsCameraRegion;
 import frc.ApriltagsCamera.ApriltagsCamera.ApriltagsCameraRegions;
+import frc.ApriltagsCamera.ApriltagsCamera.ApriltagsCameraRegions.RobotPos;
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to
@@ -24,6 +27,8 @@ public class Robot extends TimedRobot {
 
   private RobotContainer m_robotContainer;
   private ApriltagsCamera m_camera = new ApriltagsCamera();
+  private SerialGyro m_gyro = new SerialGyro();
+  private PositionServer m_posServer = new PositionServer();
 
   /**
    * This function is run when the robot is first started up and should be used for any
@@ -34,7 +39,9 @@ public class Robot extends TimedRobot {
     // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
     // autonomous chooser on the dashboard.
     m_robotContainer = new RobotContainer();
+    m_gyro.reset(90);
     m_camera.connect("10.21.2.85", 5800);
+    m_posServer.start(m_gyro);
   }
 
   /**
@@ -47,6 +54,9 @@ public class Robot extends TimedRobot {
   int m_frameCount = 0;
   int m_missingCount = 0;
   int m_invalidCount = 0;
+
+  ApriltagLocation tags[] = { new ApriltagLocation(12, 0, 324), new ApriltagLocation(0, 12, 324) };
+
   @Override
   public void robotPeriodic() {
     // Runs the Scheduler.  This is responsible for polling buttons, adding newly-scheduled
@@ -55,32 +65,36 @@ public class Robot extends TimedRobot {
     // block in order for anything in the Command-based framework to work.
     CommandScheduler.getInstance().run();
 
+    SmartDashboard.putNumber("yaw", m_gyro.getAngle());
+
     ApriltagsCameraRegions regions = m_camera.getRegions();
 
-    if (regions != null)
-    {
+    if (regions != null) {
       Logger.log("Robot", -1, String.format("nRegions = %d", regions.m_regions.size()));
       SmartDashboard.putNumber("nRegions", regions.m_regions.size());
       SmartDashboard.putNumber("nFrames", ++m_frameCount);
-      SmartDashboard.putNumber("missing", 0);
-      SmartDashboard.putNumber("invalid", 0);
       SmartDashboard.putNumber("Delay", System.currentTimeMillis() - regions.m_captureTime);
       SmartDashboard.putNumber("FPS", regions.m_fps);
 
-      if (regions.m_regions.size() == 0)
-      {
+      if (regions.m_regions.size() == 0) {
         SmartDashboard.putNumber("missing", ++m_missingCount);
       }
 
-      int i = 1;
-      for (ApriltagsCameraRegion region : regions.m_regions)
+      RobotPos pos = regions.ComputeRobotPosition(tags, m_gyro.getAngle() * Math.PI / 180);
+      if (pos != null)
       {
+        SmartDashboard.putNumber("xPos", pos.m_x);
+        SmartDashboard.putNumber("yPos", pos.m_y);
+        m_posServer.setPosition(pos.m_x, pos.m_y);
+      }
+
+      int i = 1;
+      for (ApriltagsCameraRegion region : regions.m_regions) {
         SmartDashboard.putNumber(String.format("Tag%d", i), region.m_tag);
         SmartDashboard.putNumber(String.format("Dist%d", i), Math.sqrt(region.m_tvec[0] * region.m_tvec[0] +
                                                                        region.m_tvec[1] * region.m_tvec[1] +
                                                                        region.m_tvec[2] * region.m_tvec[2]));
-        if (region.m_tag < 0)
-        {
+        if (region.m_tag < 0) {
           SmartDashboard.putNumber("invalid", ++m_invalidCount);
         }
         i++;
@@ -90,10 +104,12 @@ public class Robot extends TimedRobot {
 
   /** This function is called once each time the robot enters Disabled mode. */
   @Override
-  public void disabledInit() {}
+  public void disabledInit() {
+  }
 
   @Override
-  public void disabledPeriodic() {}
+  public void disabledPeriodic() {
+  }
 
   /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */
   @Override
@@ -108,7 +124,8 @@ public class Robot extends TimedRobot {
 
   /** This function is called periodically during autonomous. */
   @Override
-  public void autonomousPeriodic() {}
+  public void autonomousPeriodic() {
+  }
 
   @Override
   public void teleopInit() {
@@ -123,7 +140,8 @@ public class Robot extends TimedRobot {
 
   /** This function is called periodically during operator control. */
   @Override
-  public void teleopPeriodic() {}
+  public void teleopPeriodic() {
+  }
 
   @Override
   public void testInit() {
@@ -133,13 +151,16 @@ public class Robot extends TimedRobot {
 
   /** This function is called periodically during test mode. */
   @Override
-  public void testPeriodic() {}
+  public void testPeriodic() {
+  }
 
   /** This function is called once when the robot is first started up. */
   @Override
-  public void simulationInit() {}
+  public void simulationInit() {
+  }
 
   /** This function is called periodically whilst in simulation. */
   @Override
-  public void simulationPeriodic() {}
+  public void simulationPeriodic() {
+  }
 }

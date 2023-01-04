@@ -165,6 +165,8 @@ public class Network
 	{
 		System.out.println("CloseConnection");
 		
+		m_networkReceiver.disconnected();
+		
 		synchronized(this)
 		{
 			if (m_printStream != null)
@@ -209,8 +211,6 @@ public class Network
 				m_serverSocket = null;
 			}
 		}
-		
-		m_networkReceiver.disconnected();
 	}
 	
 	private class Receiver implements Runnable
@@ -322,11 +322,7 @@ public class Network
 					
 					Logger.log("Network", 2, "Host connected");
 					
-					synchronized(m_networkReceiver)
-					{
-
-						Logger.log("Network", 2, "m_printStream = " + m_printStream);
-					}
+					m_networkReceiver.connected();
 					
 					do
 					{
@@ -349,6 +345,12 @@ public class Network
 					Logger.log("Network", 3, "Host network error: " + ex);
 					
 					closeConnection();
+
+					try {
+						Thread.sleep(10);
+					} catch (InterruptedException e) {
+
+					}
 				}
 			}
 		}

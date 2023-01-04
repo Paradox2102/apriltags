@@ -346,14 +346,24 @@ std::list<AprilTag*>* findAprilTags(
                 bool duplicate = markCount <= 12;       // If any of the last 12 pixels have been previously marked then this blob is a duplicate
 
                 //black = (s[-avgCnt] * whiteDrop) / 100; // Recompute the black color based on the pixel that is 'avcCnt' back
+#define         avgCount 6
+                int b = 0;
+                if (x > avgCount + 2)
+                {
+                    for (int i = 0; i < avgCount; i++)
+                    {
+                        b += s[-i - 2];
+                    }
+                    black = (b * whiteDrop) / (100 * avgCount);
+                }
 
-                //// Recheck to see if we are at the left most edge of the blob given the new black value
-                //while ((x > 1) && (s[-1] < black))
-                //{
-                //    s--;
-                //    x--;
-                //}
-                //x0 = x;     // Marks the start of the black run
+                // recheck to see if we are at the left most edge of the blob given the new black value
+                while ((x > 1) && (s[-1] < black))
+                {
+                    s--;
+                    x--;
+                }
+                x0 = x;     // marks the start of the black run
 
                 // Check for min black run
                 int cnt = 0;

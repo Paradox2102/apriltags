@@ -48,7 +48,7 @@ public:
 	int whiteDrop = 80;			// Percent drop in white to recognize black
     int whiteCnt = 3;           // Number of pixels to avarage to get current 'white' value
 	int minBlack = 16;			// Min number of consecutive black pixels that are required
-	int minSize = 24;			// Min width/height for blob
+	int minSize = 20;			// Min width/height for blob
 	double maxSlope = 0.3;		// Max allowable slope from horz/vert allowd
 	double maxParallel = 0.15;	// Max allowable deviation for parallel sides
 	double minAspect = 0.7;		// Min aspect ratio allowdd
@@ -156,7 +156,7 @@ public:
 			double y = y1 + (i * dy);
 			double x = x1 + (i / 12.0) * dx;
 
-			int value = m_pImage[(((int)(y + 0.5)) * m_width) + ((int)(x + 0.5))];
+			int value = m_pImage[(((int)(y + 1.0)) * m_width) + ((int)(x + 0.5))];
 
 			tag <<= 1;
 			if (value < blackColor)
@@ -300,7 +300,7 @@ public:
 	 */
 	void computeTag(int blackColor)
 	{
-		blackColor -= 10;
+		//blackColor -= 10;
 
 		uint64_t value = 0;
 		double xul = m_corners[0][0];
