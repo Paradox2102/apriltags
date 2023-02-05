@@ -40,7 +40,7 @@ public class Robot extends TimedRobot {
     // autonomous chooser on the dashboard.
     m_robotContainer = new RobotContainer();
     m_gyro.reset(90);
-    m_camera.connect("10.21.2.85", 5800);
+    m_camera.connect("10.21.2.10", 5800);
     m_posServer.start(m_gyro);
   }
 
@@ -80,13 +80,13 @@ public class Robot extends TimedRobot {
         SmartDashboard.putNumber("missing", ++m_missingCount);
       }
 
-      RobotPos pos = regions.ComputeRobotPosition(tags, m_gyro.getAngle() * Math.PI / 180);
-      if (pos != null)
-      {
-        SmartDashboard.putNumber("xPos", pos.m_x);
-        SmartDashboard.putNumber("yPos", pos.m_y);
-        m_posServer.setPosition(pos.m_x, pos.m_y);
-      }
+      // RobotPos pos = regions.ComputeRobotPosition(tags, m_gyro.getAngle() * Math.PI / 180);
+      // if (pos != null)
+      // {
+      //   SmartDashboard.putNumber("xPos", pos.m_x);
+      //   SmartDashboard.putNumber("yPos", pos.m_y);
+      //   m_posServer.setPosition(pos.m_x, pos.m_y);
+      // }
 
       int i = 1;
       for (ApriltagsCameraRegion region : regions.m_regions) {
@@ -94,6 +94,9 @@ public class Robot extends TimedRobot {
         SmartDashboard.putNumber(String.format("Dist%d", i), Math.sqrt(region.m_tvec[0] * region.m_tvec[0] +
                                                                        region.m_tvec[1] * region.m_tvec[1] +
                                                                        region.m_tvec[2] * region.m_tvec[2]));
+        SmartDashboard.putNumber(String.format("rx%d", i), region.m_rvec[0]);                                                                    
+        SmartDashboard.putNumber(String.format("ry%d", i), region.m_rvec[1]);                                                                    
+        SmartDashboard.putNumber(String.format("rz%d", i), region.m_rvec[2]);                                                                    
         if (region.m_tag < 0) {
           SmartDashboard.putNumber("invalid", ++m_invalidCount);
         }
