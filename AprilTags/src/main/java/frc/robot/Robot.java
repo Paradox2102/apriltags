@@ -4,6 +4,7 @@
 
 package frc.robot;
 
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -39,9 +40,10 @@ public class Robot extends TimedRobot {
     // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
     // autonomous chooser on the dashboard.
     m_robotContainer = new RobotContainer();
-    m_gyro.reset(90);
+    m_gyro.reset(0);
     m_camera.connect("10.21.2.10", 5800);
     m_posServer.start(m_gyro);
+    Logger.log("Robot", 1, "Position server started");
   }
 
   /**
@@ -66,9 +68,11 @@ public class Robot extends TimedRobot {
     CommandScheduler.getInstance().run();
 
     SmartDashboard.putNumber("yaw", m_gyro.getAngle());
-
+  
     ApriltagsCameraRegions regions = m_camera.getRegions();
 
+    m_posServer.setAllianceColor(DriverStation.getAlliance() == DriverStation.Alliance.Red);
+    
     if (regions != null) {
       Logger.log("Robot", -1, String.format("nRegions = %d", regions.m_regions.size()));
       SmartDashboard.putNumber("nRegions", regions.m_regions.size());

@@ -81,6 +81,11 @@ public class PositionServer implements NetworkReceiver {
         }
     }
 
+    public void setAllianceColor(boolean red)
+    {
+        m_network.sendMessage(String.format("c%c", red ? 'r' : 'b'));
+    }
+
     public class BezierData {
         public double m_x1; // In feet
         public double m_y1; // In feet

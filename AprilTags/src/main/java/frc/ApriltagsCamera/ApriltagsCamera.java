@@ -409,7 +409,7 @@ public class ApriltagsCamera implements frc.ApriltagsCamera.Network.NetworkRecei
 	private void processCameraFrame(String args) {
 		long a[] = parseLong(args, 9);
 
-		// System.out.println(String.format("%d: %s", System.currentTimeMillis(), args));
+		// System.out.println(String.format("%d %s", System.currentTimeMillis(), args));
 
 		if (a != null) {
 			m_nextRegions = new ApriltagsCameraRegions((int) a[0], (int) a[1], (int) a[2], (int) a[3], (int) a[4],
