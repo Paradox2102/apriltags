@@ -45,7 +45,7 @@ public class Robot extends TimedRobot {
     // and put our
     // autonomous chooser on the dashboard.
     m_robotContainer = new RobotContainer();
-    m_gyro.reset(0);
+    m_gyro.reset(-90);
     m_camera.connect("10.21.2.10", 5800);
     m_posServer.start(m_gyro);
     Logger.log("Robot", 1, "Position server started");
@@ -65,7 +65,7 @@ public class Robot extends TimedRobot {
   int m_missingCount = 0;
   int m_invalidCount = 0;
 
-  ApriltagLocation tags[] = { new ApriltagLocation(12, 0, 324), new ApriltagLocation(0, 12, 324) };
+  ApriltagLocation tags[] = { new ApriltagLocation(1, 0, 3*12, 90) };
 
   private double normalizeAngle (double angle) {
     angle = angle%360;
@@ -106,30 +106,33 @@ public class Robot extends TimedRobot {
         SmartDashboard.putNumber("missing", ++m_missingCount);
       }
 
-      // RobotPos pos = regions.ComputeRobotPosition(tags, m_gyro.getAngle() * Math.PI
-      // / 180);
-      // if (pos != null)
-      // {
-      // SmartDashboard.putNumber("xPos", pos.m_x);
-      // SmartDashboard.putNumber("yPos", pos.m_y);
-      // m_posServer.setPosition(pos.m_x, pos.m_y);
-      // }
+      RobotPos pos = regions.ComputeRobotPosition(tags, Math.toRadians(m_gyro.getAngle()));
+      if (pos != null)
+      {
+        Logger.log("Robot", -11, String.format("x=%f,y=%f", pos.m_x, pos.m_y));
+        SmartDashboard.putNumber("xPos", pos.m_x);
+        SmartDashboard.putNumber("yPos", pos.m_y);
+        m_posServer.setPosition(pos.m_x, pos.m_y);
+      }
 
-      int i = 1;
       for (ApriltagsCameraRegion region : regions.m_regions) {
         if (region.m_tag == 1) {
 
-          SmartDashboard.putNumber(String.format("Tag%d", i), region.m_tag);
-          SmartDashboard.putNumber(String.format("Dist%d", i), Math.sqrt(region.m_tvec[0] * region.m_tvec[0] +
+          SmartDashboard.putNumber(String.format("Tag%d", region.m_tag), region.m_tag);
+          SmartDashboard.putNumber(String.format("Dist%d", region.m_tag), Math.sqrt(region.m_tvec[0] * region.m_tvec[0] +
               region.m_tvec[1] * region.m_tvec[1] +
               region.m_tvec[2] * region.m_tvec[2]));
-          SmartDashboard.putNumber(String.format("rx%d", i), region.m_rvec[0]);
-          SmartDashboard.putNumber(String.format("ry%d", i), region.m_rvec[1]);
-          SmartDashboard.putNumber(String.format("rz%d", i), region.m_rvec[2]);
+          SmartDashboard.putNumber(String.format("rx%d", region.m_tag), region.m_rvec[0]);
+          SmartDashboard.putNumber(String.format("ry%d", region.m_tag), region.m_rvec[1]);
+          SmartDashboard.putNumber(String.format("rz%d", region.m_tag), region.m_rvec[2]);
+          SmartDashboard.putNumber(String.format("tx%d", region.m_tag), region.m_tvec[0]);
+          SmartDashboard.putNumber(String.format("ty%d", region.m_tag), region.m_tvec[1]);
+          SmartDashboard.putNumber(String.format("tz%d", region.m_tag), region.m_tvec[2]);
+          SmartDashboard.putNumber(String.format("angle%d", region.m_tag), normalizeAngle(region.m_angle));
+
           if (region.m_tag < 0) {
             SmartDashboard.putNumber("invalid", ++m_invalidCount);
           }
-          i++;
         }
       }
     }

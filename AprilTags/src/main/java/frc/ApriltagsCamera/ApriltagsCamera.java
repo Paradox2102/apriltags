@@ -68,6 +68,7 @@ public class ApriltagsCamera implements frc.ApriltagsCamera.Network.NetworkRecei
 		public double m_rvec[] = new double[3];
 		public double m_tvec[] = new double[3];
 		public double m_corners[][] = new double[4][2];
+		public double m_angleInDegrees;
 
 		// ! @cond PRIVATE
 		public ApriltagsCameraRegion(int tag, double r0, double r1, double r2, double t0, double t1, double t2,
@@ -87,6 +88,8 @@ public class ApriltagsCamera implements frc.ApriltagsCamera.Network.NetworkRecei
 			m_corners[2][1] = y2;
 			m_corners[3][0] = x3;
 			m_corners[3][1] = y3;
+
+			m_angleInDegrees = r1 * 52 + m_angleOffsetInDegrees;
 		}
 		// ! @endcond
 	}
@@ -172,6 +175,8 @@ public class ApriltagsCamera implements frc.ApriltagsCamera.Network.NetworkRecei
 			}
 		}
 
+		boolean m_angleOffsetInitialized = false;
+
 		/*
 		 * Computes relative position of the robot with respect to the specified Apriltag
 		 *
@@ -180,6 +185,12 @@ public class ApriltagsCamera implements frc.ApriltagsCamera.Network.NetworkRecei
 				ApriltagsCameraRegion region, // Specifies the region information for the tag,
 				double yaw) { // Specifies the current orientation of the robot in radians from the positive x
 								// axis
+
+			if (!m_angleOffsetInitialized)
+			{
+				m_angleOffsetInDegrees = yaw - region.m_angleInDegrees;
+				m_angleOffsetInitialized = true;
+			}
 
 			double cx = region.m_tvec[0];
 			double cz = region.m_tvec[2];
@@ -232,8 +243,8 @@ public class ApriltagsCamera implements frc.ApriltagsCamera.Network.NetworkRecei
 				if (tag != null) {
 					RobotPos pos = computePosition(region, yaw);
 
-					x += tag.m_x + pos.m_x;
-					y += tag.m_y - pos.m_y;
+					x += tag.m_xInches + pos.m_x;
+					y += tag.m_yInches - pos.m_y;
 					count++;
 				}
 			}
@@ -263,6 +274,7 @@ public class ApriltagsCamera implements frc.ApriltagsCamera.Network.NetworkRecei
 	private Timer m_watchdogTimer = new Timer();
 	private long m_lastMessage;
 	private static final int k_timeout = 5000;
+	private double m_angleOffsetInDegrees = 0;
 
 	public ApriltagsCamera() {
 		m_watchdogTimer.scheduleAtFixedRate(new TimerTask() {

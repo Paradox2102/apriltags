@@ -35,11 +35,11 @@ public class PositionServer implements NetworkReceiver {
 
                     {
 
-                        m_network.sendMessage(String.format("+%.2f %.2f %.2f\n", m_angle, m_testX, m_testY));
+                        // m_network.sendMessage(String.format("+%.2f %.2f %.2f\n", m_angle, m_testX, m_testY));
 
-                        m_testX += 1;
-                        m_testY += 0.5;
-                        m_angle += 1.0/5;
+                        // m_testX += 1;
+                        // m_testY += 0.5;
+                        // m_angle += 1.0/5;
                     }
 
                     double xPos;
@@ -98,7 +98,7 @@ public class PositionServer implements NetworkReceiver {
 
         public BezierData(double x1, double y1, double angle1, double l1, double x2, double y2, double angle2,
                 double l2) {
-            Logger.log("BezierData", 1, String.format("%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f", x1, y1, angle1, l1, x2, y2, angle2, l2));
+            Logger.log("BezierData", 1, String.format("%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f", x1, y1, angle1, l1, x2, y2, angle2, l2));
 
             m_x1 = x1;
             m_y1 = y1;
@@ -116,6 +116,8 @@ public class PositionServer implements NetworkReceiver {
     private int m_nBezier;
 
     private void processPath(String path) {
+        Logger.log("PositionServer", 1, String.format("processPath: %s", path));
+
         int[] args = ApriltagsCamera.parseIntegers(path, 1);
 
         if (args != null) {
@@ -126,9 +128,11 @@ public class PositionServer implements NetworkReceiver {
     }
 
     private void processBezier(String bezier) {
+        Logger.log("PositionServer", 1, String.format("processBezier: cnt=%d %s", m_nBezier, bezier));
+
         if ((m_newData != null) && (m_nBezier < m_newData.length)) {
             double[] arg = ApriltagsCamera.parseDouble(bezier, 8);
-            m_newData[m_nBezier] = new BezierData(arg[0], arg[1], arg[2], arg[3], arg[4], arg[5], arg[6], arg[8]);
+            m_newData[m_nBezier] = new BezierData(arg[0], arg[1], arg[2], arg[3], arg[4], arg[5], arg[6], arg[7]);
         }
         else
         {
