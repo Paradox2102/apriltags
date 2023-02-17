@@ -65,9 +65,9 @@ public class Robot extends TimedRobot {
   int m_missingCount = 0;
   int m_invalidCount = 0;
 
-  ApriltagLocation tags[] = { new ApriltagLocation(1, 0, 3*12, 90) };
+  ApriltagLocation tags[] = { new ApriltagLocation(1, 0, 3*12, -90) };
 
-  private double normalizeAngle (double angle) {
+  public static double normalizeAngle (double angle) {
     angle = angle%360;
     if (angle <= -180) {
       angle += 360;
@@ -128,7 +128,10 @@ public class Robot extends TimedRobot {
           SmartDashboard.putNumber(String.format("tx%d", region.m_tag), region.m_tvec[0]);
           SmartDashboard.putNumber(String.format("ty%d", region.m_tag), region.m_tvec[1]);
           SmartDashboard.putNumber(String.format("tz%d", region.m_tag), region.m_tvec[2]);
-          SmartDashboard.putNumber(String.format("angle%d", region.m_tag), normalizeAngle(region.m_angle));
+          SmartDashboard.putNumber(String.format("angle%d", region.m_tag), normalizeAngle(region.m_angleInDegrees));
+          SmartDashboard.putNumber(String.format("relAngle%d", region.m_tag), normalizeAngle(region.m_relAngleInDegrees));
+          SmartDashboard.putNumber(String.format("offset%d", region.m_tag), region.m_angleOffset);
+          
 
           if (region.m_tag < 0) {
             SmartDashboard.putNumber("invalid", ++m_invalidCount);

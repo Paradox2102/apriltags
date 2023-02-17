@@ -68,7 +68,9 @@ public class ApriltagsCamera implements frc.ApriltagsCamera.Network.NetworkRecei
 		public double m_rvec[] = new double[3];
 		public double m_tvec[] = new double[3];
 		public double m_corners[][] = new double[4][2];
+		public double m_relAngleInDegrees;
 		public double m_angleInDegrees;
+		public double m_angleOffset;
 
 		// ! @cond PRIVATE
 		public ApriltagsCameraRegion(int tag, double r0, double r1, double r2, double t0, double t1, double t2,
@@ -89,7 +91,9 @@ public class ApriltagsCamera implements frc.ApriltagsCamera.Network.NetworkRecei
 			m_corners[3][0] = x3;
 			m_corners[3][1] = y3;
 
-			m_angleInDegrees = r1 * 52 + m_angleOffsetInDegrees;
+			m_angleInDegrees = 
+			m_relAngleInDegrees = r1 * 52 + m_angleOffsetInDegrees;
+			m_angleOffset = m_angleOffsetInDegrees;
 		}
 		// ! @endcond
 	}
@@ -175,28 +179,29 @@ public class ApriltagsCamera implements frc.ApriltagsCamera.Network.NetworkRecei
 			}
 		}
 
-		boolean m_angleOffsetInitialized = false;
-
 		/*
 		 * Computes relative position of the robot with respect to the specified Apriltag
 		 *
 		 */
 		private RobotPos computePosition(
 				ApriltagsCameraRegion region, // Specifies the region information for the tag,
-				double yaw) { // Specifies the current orientation of the robot in radians from the positive x
+				double yawRadians) { // Specifies the current orientation of the robot in radians from the positive x
 								// axis
+
+			// Logger.log("ApriltagsCamera", 1, String.format("%d: init = %b", region.m_tag, m_angleOffsetInitialized));
 
 			if (!m_angleOffsetInitialized)
 			{
-				m_angleOffsetInDegrees = yaw - region.m_angleInDegrees;
+				m_angleOffsetInDegrees = Math.toDegrees(yawRadians) - region.m_angleInDegrees;
 				m_angleOffsetInitialized = true;
+				Logger.log("ApriltagsCamera", 1, String.format("yaw=%f,angle=%f,offset=%f", Math.toDegrees(yawRadians), region.m_angleInDegrees, m_angleOffsetInDegrees));
 			}
 
 			double cx = region.m_tvec[0];
 			double cz = region.m_tvec[2];
 
 			double a = Math.atan2(cx, cz);
-			double b = yaw - Math.PI/2 - a;
+			double b = yawRadians - Math.PI/2 - a;
 			double d = Math.sqrt(cx*cx + cz*cz);
 			double dx = d * Math.sin(b);
 			double dy = d * Math.cos(b);
@@ -241,6 +246,8 @@ public class ApriltagsCamera implements frc.ApriltagsCamera.Network.NetworkRecei
 				ApriltagLocation tag = findTag(tags, region.m_tag);
 
 				if (tag != null) {
+					region.m_angleInDegrees = region.m_relAngleInDegrees + tag.m_targetAngleDegrees;
+
 					RobotPos pos = computePosition(region, yaw);
 
 					x += tag.m_xInches + pos.m_x;
@@ -275,6 +282,7 @@ public class ApriltagsCamera implements frc.ApriltagsCamera.Network.NetworkRecei
 	private long m_lastMessage;
 	private static final int k_timeout = 5000;
 	private double m_angleOffsetInDegrees = 0;
+	boolean m_angleOffsetInitialized = false;
 
 	public ApriltagsCamera() {
 		m_watchdogTimer.scheduleAtFixedRate(new TimerTask() {
@@ -292,7 +300,7 @@ public class ApriltagsCamera implements frc.ApriltagsCamera.Network.NetworkRecei
 					}
 				}
 			}
-		}, 1000, 1000);
+		}, 200, 200);
 	}
 
 	/**
