@@ -51,7 +51,7 @@
 #include "opencv.h"
 
 /*************
- * 
+ *
  * This program is used to capture images and process them for Apriltags.
  *	It provides a server that provides the data for the Apriltags found to the RoboRio
  *	A second server provides is used to provide images to a computer which can view the
@@ -63,7 +63,7 @@
  *		4 - The image thread listens for a connection on port 5801 and supplies the images to a computer
  *
  * 	In addition there is the main thread which monitors the keyboard for commands.
- * 
+ *
  **************/
 
 
@@ -356,6 +356,11 @@ public:
 				{
 					pRegions = ProcessAprilTags(imageData, CaptureWidth, CaptureHeight);
 				}
+
+//				if (pRegions->size() != 1)
+//				{
+//                    SaveImage("NotOne", imageData);
+//				}
 
 				if (g_saveData)
 				{
@@ -1796,7 +1801,7 @@ public:
 #ifdef R1080
 #define jpegScale 4
 #else   // !R1080
-#define jpegScale 2
+#define jpegScale 4
 #endif // !R1080
 								Camera.GetScaledFrame(frameData, jpegScale);
 

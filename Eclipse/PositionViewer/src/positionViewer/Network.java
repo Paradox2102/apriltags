@@ -128,6 +128,10 @@ public class Network
 	{
 		if (m_printStream != null)
 		{
+			if (message.charAt(0) == 'B')
+			{
+				int x = 0;
+			}
 			m_printStream.println(message);
 		}
 	}
@@ -149,9 +153,22 @@ public class Network
 		@Override
 		public void run() 
 		{
+			boolean test = false;
+			
 			System.out.println("Receiver thread started");
 			while (true)
 			{
+				if (test)
+				{
+					try {
+						Thread.sleep(1000);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					continue;
+				}
+				
 				System.out.println("Connecting to RoboRio");
 				
 				try
@@ -168,6 +185,8 @@ public class Network
 					
 					m_connected = true;
 					m_lastMessage = System.currentTimeMillis();
+					
+					m_positionViewer.connected();
 					
 					StringBuilder command = new StringBuilder();
 
@@ -211,6 +230,8 @@ public class Network
 				CloseConnection();
 								
 				m_connected = false;
+				
+				m_positionViewer.disconnected();
 				
 				Sleep(2000);
 			}
