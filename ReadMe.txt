@@ -2,14 +2,9 @@ This folder contains all of the source code for the Apriltags processing program
 
 http://programming.team2102.org/apriltags/
 
-1/4/2023 Changes:
+2024 Changes:
 
-1) Improved tag detection for the fast implementation, particularly in low light conditions
-2) Improved the accuracy of the computation of the rotation and translation vectors (rvec & tvec)
-3) Fixed a problem with the camera calibration for the 1080P resolution using the standard Pi camera
-4) Added some code to the FRC robot project to compute the absolute position of the robot
-   based on the tvec returned from the tag and the direction of the robot as provided by a gyro
-5) Added a position server within the FRC robot project that can send the robot's position
-   to another device.
-6) Added a Java app which can connect to the position server and display the position of the
-   robot in real time.
+1) Changed the ApriltagsVision to use LibCamera so that it will run on an Raspberry Pi 5
+2) Added the ability to handle two cameras on a Rapberry Pi 5
+3) Added support for the Raspberry Pi Global Shutter Camera
+4) Calibrated the Global Shutter Camera for the following 6mm lens: https://www.amazon.com/gp/product/B088BLZKRG/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1

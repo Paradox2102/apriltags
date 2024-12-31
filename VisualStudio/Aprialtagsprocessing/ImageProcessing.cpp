@@ -703,7 +703,7 @@ void Paint(HWND hWnd)
 
 				for (int i = 0; i < max; i++)
 				{
-					for (int j = 0; j < 4; j++)
+					for (int j = 0; j < max; j++)
 					{
 						int x = (int)(pTag->m_points[i][j][0] + 0.5) + Margin;
 						int y = (int)(pTag->m_points[i][j][1] + 0.5);
@@ -920,7 +920,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		return FALSE;
 	}
 
-	GetFiles("Images");
+	GetFiles("images");
 	g_pBitmap = GetBitmap(0);
 	InvalidateRect(g_hWnd, 0, false);
 

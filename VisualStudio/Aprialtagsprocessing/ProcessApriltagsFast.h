@@ -19,7 +19,7 @@
 #ifndef _ProcessAprilTagsFast_h
 #define _ProcessAprilTagsFast_h
 
-#define SmallTag
+//#define SmallTag
 
 #include <list>
 #include "ProcessApriltags.h"
@@ -59,7 +59,11 @@ public:
 struct AprilTagData
 {
 	int tag;
+#ifdef SmallTag
 	unsigned short value;
+#else	// !SmallTag
+	uint64_t value;
+#endif	// !SmallTag
 };
 
 extern AprilTagData tagData[];
@@ -104,7 +108,7 @@ public:
 	ApriltagParams m_params;		// Process parameters
 	double m_corners[4][2];			// Four corners of the blob
 
-	AprilTag(int minX, int minY, int maxX, int maxY, int blackColor, 
+	AprilTag(int minX, int minY, int maxX, int maxY, int blackColor,
 		unsigned char * pImage, int width, int height, ApriltagParams* params,
 		short * pTracePoints = 0, int nTracePoints = 0)
 	{
@@ -144,7 +148,7 @@ public:
 	/*
 	 * This function extracts the bit data from the 6x6 set of white or black
 	 * 'pixels' which represents the 16 bits of binary data which identifies the tag
-	 * 
+	 *
 	 */
 
 	uint64_t markEdgePoints(int x1, int y1, int x2, int y2, double edgePoints[4][2], int blackColor, uint64_t tag)
@@ -175,7 +179,7 @@ public:
 	double m_rightEdgePoints[6][2];
 	double m_points[6][6][2];
 
-	uint64_t markEdgePoints(int x1, int y1, int x2, int y2, double edgePoints[6][2], uint64_t tag)
+	uint64_t markEdgePoints(int x1, int y1, int x2, int y2, double edgePoints[6][2], int blackColor, uint64_t tag)
 	{
 		for (int i = 3; i <= 13; i += 2)
 		{
@@ -187,7 +191,7 @@ public:
 			int value = m_pImage[(((int)(y + 0.5)) * m_width) + ((int)(x + 0.5))];
 
 			tag <<= 1;
-			if (value < m_params.blackColor)
+			if (value < blackColor)
 			{
 				tag |= 1;
 			}
@@ -221,7 +225,7 @@ public:
 				bestErrors = nErrors;
 				bestIdx = i;
 			}
-			
+
 		}
 
 		if (bestErrors < 3)
@@ -235,7 +239,11 @@ public:
 	/*
 	 * Finds the tag # by searching the valid tag numbers for a match
 	 */
+#ifdef SmallTag
 	int findTag(unsigned int value)
+#else	// !SmallTag
+	int findTag(uint64_t value)
+#endif	// !SmallTag
 	{
 		int	low = 0;
 		int high = nTagData;
@@ -327,7 +335,7 @@ public:
 		m_isValid = m_tag >= 0;
 	}
 #else	// !SmallTag
-	void computeTag()
+	void computeTag(int blackColor)
 	{
 		uint64_t value = 0;
 		double xul = m_corners[0][0];
@@ -339,17 +347,17 @@ public:
 		double xll = m_corners[3][0];
 		double yll = m_corners[3][1];
 
-		double ldx = xll - xul;
-		double rdx = xlr - xur;
+//		double ldx = xll - xul;
+//		double rdx = xlr - xur;
 
-		markEdgePoints(xul, yul, xll, yll, m_leftEdgePoints, 0);
-		markEdgePoints(xur, yur, xlr, ylr, m_rightEdgePoints, 0);
+		markEdgePoints(xul, yul, xll, yll, m_leftEdgePoints, blackColor, 0);
+		markEdgePoints(xur, yur, xlr, ylr, m_rightEdgePoints, blackColor, 0);
 
 		for (int i = 0; i < 6; i++)
 		{
 			value = markEdgePoints(m_leftEdgePoints[i][0], m_leftEdgePoints[i][1],
 				m_rightEdgePoints[i][0], m_rightEdgePoints[i][1],
-				m_points[i], value);
+				m_points[i], blackColor, value);
 		}
 
 		m_tag = findTag(value);
@@ -617,7 +625,7 @@ extern std::list<AprilTag*>* findAprilTags(unsigned char* pImage, int width, int
 extern void deleteAprilTags(std::list<AprilTag*>* pList);
 extern void deleteImageRegions(std::list<ImageRegion*>* pRegions);
 extern bool TestPixel(unsigned char* pImage, int x, int y, int width, int height, int BlackColor);
-extern int traceBlob(unsigned char* pImage,		// Pointer to the image buffer 
+extern int traceBlob(unsigned char* pImage,		// Pointer to the image buffer
 	int	width,		// Width of the image in pixels
 	int	height,		// Height of the image in pixels
 	int	xStart,		// Horizontal coordinate of the starting pixel

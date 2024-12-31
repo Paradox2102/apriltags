@@ -2,8 +2,8 @@
 <opencv_storage>
 	<Settings>
 		<!-- Number of inner corners per a item row and column. (square, circle) -->
-		<BoardSize_Width>6</BoardSize_Width>
-		<BoardSize_Height>6</BoardSize_Height>
+		<BoardSize_Width>7</BoardSize_Width>
+		<BoardSize_Height>7</BoardSize_Height>
 
 		<!-- The size of a square in some user defined metric system (pixel, millimeter)-->
 		<Square_Size>1</Square_Size>
@@ -16,7 +16,7 @@
 		To use an input video  -> give the path of the input video, like "/tmp/x.avi"
 		To use an image list   -> give the path to the XML or YAML file containing the list of the images, like "/tmp/circles_list.xml"
 		-->
-		<Input>"images-jetson2/Images.xml"</Input>
+		<Input>"images-1080P/Images.xml"</Input>
 		<!--  If true (non-zero) we flip the input images around the horizontal axis.-->
 		<Input_FlipAroundHorizontalAxis>0</Input_FlipAroundHorizontalAxis>
 

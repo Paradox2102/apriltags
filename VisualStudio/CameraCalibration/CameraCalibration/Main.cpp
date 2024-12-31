@@ -1,3 +1,4 @@
+#include <Windows.h>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -389,6 +390,7 @@ int main(int argc, char* argv[])
 
             // Draw the corners.
             drawChessboardCorners(view, s.boardSize, Mat(pointBuf), found);
+//            Sleep(3000);
         }
         //! [pattern_found]
         //----------------------------- Output Text ------------------------------------------------

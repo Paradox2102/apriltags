@@ -212,7 +212,8 @@ AprilTag* checkBlob(
 
 	if (((maxX - minX + 1) < params->minSize) || ((maxY - minY + 1) < params->minSize))
 	{
-		return NULL;		// Tag too small
+		return NULL;		// Tag too 
+		
 	}
 
 	AprilTag * pTag = new AprilTag(minX, minY, maxX, maxY, blackColor, pImage, 
