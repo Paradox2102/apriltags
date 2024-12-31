@@ -1,0 +1,898 @@
+package positionViewer;
+
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+//import java.util.HashMap;
+
+import javax.imageio.ImageIO;
+import javax.swing.BorderFactory;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.border.AbstractBorder;
+import javax.swing.JOptionPane;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
+import java.awt.event.ActionEvent;
+
+
+
+public class PositionViewer 
+{
+	private static double k_fieldLength = 651.25;		// inches
+	private static double k_fieldWidth = (315.0);		// inches;
+	
+	class Endpoint
+	{
+		double m_x0;		// Horz position used to determing if the robot is left or right
+		double m_leftX;		// Horz location of end point in feet when approaching from the left
+		double m_leftAngle;	// Approach angle from the left in degrees
+		double m_rightX;
+		double m_rightAngle;
+		double m_p;						// Distance to control point
+		
+		public Endpoint(double x0, double leftX, double leftAngle, double rightX, double rightAngle, double p)
+		{
+			m_x0 = x0;
+			m_leftX = leftX;
+			m_leftAngle = leftAngle;
+			m_rightX = rightX;
+			m_rightAngle = rightAngle;
+			m_p = p;
+		}
+	}
+	
+    final static double k_p0 = 0.3;	// Distance to first control point from robot position as a fraction of total distance
+	
+	private final double k_p1 = 0.3;		// Default control point distance as a fraction of total distance
+	
+	Endpoint k_endpoints[] = new Endpoint[]  
+	{ 
+		new Endpoint( 7,    11.41,    0, 11.41,  -90, k_p1),
+		new Endpoint( 5,     9.63,    0,  9.63,  -90, k_p1),
+		new Endpoint( 3,     7.85,    0,  7.85,  -120, k_p1),
+		new Endpoint( 3,     5.91,    0,  5.91,  -180, k_p1),
+		new Endpoint( 3,     4.13,    0,  4.13,  -180, k_p1),
+		new Endpoint( 2.35,  2.35,    0,  2.35,  -180, k_p1),
+		new Endpoint( 0.41,  0.41,  -60,  0.41,  -180, k_p1),
+		new Endpoint( 5,    -1.37,  -90, -1.37,  -180, k_p1),
+		new Endpoint( 5,    -3.15,  -90, -3.15,  -180, k_p1),
+		new Endpoint(-9,    -9,      90, -9,       90, k_p1)
+	};
+	
+	@SuppressWarnings("serial")
+	public class RoundedLineBorder extends AbstractBorder {
+	    int lineSize, cornerSize;
+	    Paint fill;
+	    Stroke stroke;
+	    private Object aaHint;
+
+	    public RoundedLineBorder(Paint fill, int lineSize, int cornerSize) {
+	        this.fill = fill;
+	        this.lineSize = lineSize;
+	        this.cornerSize = cornerSize;
+	        stroke = new BasicStroke(lineSize);
+	    }
+	    public RoundedLineBorder(Paint fill, int lineSize, int cornerSize, boolean antiAlias) {
+	        this.fill = fill;
+	        this.lineSize = lineSize;
+	        this.cornerSize = cornerSize;
+	        stroke = new BasicStroke(lineSize);
+	        aaHint = antiAlias? RenderingHints.VALUE_ANTIALIAS_ON: RenderingHints.VALUE_ANTIALIAS_OFF;
+	    }
+
+	    @Override
+	    public Insets getBorderInsets(Component c, Insets insets) {
+	        int size = Math.max(lineSize, cornerSize);
+	        if(insets == null) insets = new Insets(size, size, size, size);
+	        else insets.left = insets.top = insets.right = insets.bottom = size;
+	        return insets;
+	    }
+
+	    @Override
+	    public void paintBorder(Component c, Graphics g, int x, int y, int width, int height) {
+	        Graphics2D g2d = (Graphics2D)g;
+	        Paint oldPaint = g2d.getPaint();
+	        Stroke oldStroke = g2d.getStroke();
+	        Object oldAA = g2d.getRenderingHint(RenderingHints.KEY_ANTIALIASING);
+	        try {
+	            g2d.setPaint(fill!=null? fill: c.getForeground());
+	            g2d.setStroke(stroke);
+	            if(aaHint != null) g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, aaHint);
+	            int off = lineSize >> 1;
+	            g2d.drawRoundRect(x+off, y+off, width-lineSize, height-lineSize, cornerSize, cornerSize);
+	        }
+	        finally {
+	            g2d.setPaint(oldPaint);
+	            g2d.setStroke(oldStroke);
+	            if(aaHint != null) g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, oldAA);
+	        }
+	    }
+	}
+	
+	class Position
+	{
+		public int m_x;
+		public int m_y;
+		
+		public Position(int x, int y)
+		{
+			m_x = x;
+			m_y = y;
+		}
+	}
+	
+	@SuppressWarnings("serial")
+	public class ArrayListExt<E> extends ArrayList<E> {
+
+		  public void removeRange(int fromIndex, int toIndex) {
+		    super.removeRange(fromIndex, toIndex);
+		  }
+
+		}
+	
+	private Network m_network = new Network(this);
+	private CustomPanel m_panel;
+	private double m_yaw = -90;
+	private double m_xPos = -5*12;
+	private double m_yPos = 15*12;
+	private int m_lastXPos = 0;
+	private int m_lastYPos = 0;
+	
+	private ArrayListExt<Position> m_posList = new ArrayListExt<Position>();
+	private static int m_maxList = 1000;
+	private Object m_lock = new Object();
+	private boolean m_visible = true;
+	
+	Dimension size = Toolkit.getDefaultToolkit().getScreenSize();
+	private int m_screenHeight = (int)size.getHeight();
+	private int m_screenWidth = (int)size.getWidth();
+	    
+   	
+	@SuppressWarnings("serial")
+	private class CustomPanel extends JPanel implements Control
+	{
+		private BufferedImage m_image = null;
+		
+	    public CustomPanel() {
+	    	
+	        setBorder(BorderFactory.createLineBorder(Color.black));
+			
+			try {
+			    m_image = ImageIO.read(new File("field.jpg"));
+			} catch (IOException e) {
+			}
+			
+			
+			m_controls.add(this);
+	    } 
+	    
+		int m_x;
+		int m_y;
+		int m_width;
+		int m_height;
+		
+		@Override public void setBounds(int x, int y, int width, int height) {
+			m_x = x;
+			m_y = y;
+			m_width = width;
+			m_height = height;
+			
+			super.setBounds(x,  y, width, height);			
+		}
+		
+		@Override
+		public void resize(int width, int height) {
+			double scale = (double) width / k_designWidth;
+			double scaley = (double) height / k_designHeight;
+			
+			// Maintain aspect ratio
+			if (scaley < scale)
+			{
+				scale = scaley;
+			}
+			super.setBounds( (int) (m_x * scale),
+							 (int) (m_y * scale),
+							 (int) (m_width  * scale),
+							 (int) (m_height * scale));
+			
+			computeScale();
+		}	
+
+	    public Dimension getPreferredSize() {
+	        return new Dimension(250,200);
+	    }
+	    
+	    int viewWidth;
+	    int viewHeight;
+
+	    double m_sx	= 1;
+	    double m_sy = 1;
+	    
+	    public void computeScale()
+	    {
+        	viewWidth	= getWidth();
+        	viewHeight  = getHeight();
+        	
+        	m_sy = (double) viewWidth / k_fieldLength;
+        	m_sx = m_sy; //viewHeight / m_fieldWidth;
+        	System.out.println(String.format("sy = %f, sx = %f, viewHeight = %d, viewFieldWidth = %f", m_sy, m_sx, viewHeight, k_fieldWidth));    	
+	    }
+	    
+	    // Converts field y pos (in inches) to the view x pos (in pixels)
+	    private int sx(double y)
+	    {
+	    	return (int) (y * m_sx); 
+	    }
+	    
+	    // Converts the field x pos (in inches) to the view y pos (in pixels)
+	    private int sy(double x)
+	    {
+	    	return((int) (x * m_sy)) + viewHeight / 2;
+	    }
+	    
+	    // Converts the view y pos (in pixels) to the field x pos (in inches)
+	    public double isx(int y)
+	    {
+	    	return (y - (double) viewHeight/2) / m_sy;
+	    }
+	    
+	    // Converts the view x pos (in pixels) to the field y pos (in inches)
+	    public double isy(int x)
+	    {
+	    	return(x / m_sx);
+	    }
+	    
+	    public void paintComponent(Graphics g) 
+	    {
+	        super.paintComponent(g);       
+	        viewHeight = (int) (viewWidth * k_fieldWidth / k_fieldLength);
+	        if(!m_allianceRed) {
+	        	g.drawImage(m_image, 0, 0, viewWidth, viewHeight, null);
+	        
+	        } else {
+	 
+	        	g.drawImage(m_image, viewWidth, viewHeight, -viewWidth, -viewHeight, null);
+	        }
+	                
+        	g.setColor(Color.green);
+        	synchronized(m_lock)
+        	{
+        		for (Position pos : m_posList)
+        		{
+        			g.fillRect(pos.m_x - 2,  pos.m_y - 2, 4, 4);
+        		}
+        		
+        		if (m_visible)
+        		{
+		        	g.setColor(Color.red);
+		        	int x = sx(m_yPos);
+		        	int y = sy(m_xPos);
+		        	g.fillRect(x - 2, y - 2, 5, 5);
+		        	
+		        	int dx = (int) (15 * Math.sin((m_yaw+180) * Math.PI / 180));
+		        	int dy = (int) (15 * Math.cos((m_yaw+180) * Math.PI / 180));
+		        	g.drawLine(x, y, x + dx, y + dy);
+        		}
+        	}
+	    }
+	    
+		private void setPosition(double yaw, double x0, double y0)
+		{
+			boolean paint = false;
+			double y = (x0 / 0.0254);	// Convert to feet
+			double x = (-y0 / 0.0254);
+			yaw += 90;
+			if (yaw > 180)
+			{
+				yaw -= 360;
+			}
+			
+			int yPos = sy(x);
+			int xPos = sx(y);
+			
+			synchronized(m_lock)
+			{
+				if ((xPos != m_lastXPos) || (yPos != m_lastYPos))
+				{
+					m_posList.add(new Position(xPos, yPos));
+					
+					if (m_posList.size() >= m_maxList)
+					{
+						System.out.println("Shrink list");
+						m_posList.removeRange(0, m_maxList/10);
+					}
+				
+					m_xPos = x;//Pos;
+					m_yPos = y;//Pos;
+					
+					paint = true;
+				}
+				
+				int iYaw = (int) (yaw + 0.5);
+				if (iYaw != m_yaw)
+				{
+					m_yaw = iYaw;
+					paint = true;
+				}
+			}
+			
+			if (paint)
+			{
+				repaint();
+			}
+			
+			m_visible = true;
+		}
+		
+		private void notVisible()
+		{
+			m_visible = false;
+			repaint();
+		}
+	}
+
+	private JFrame frame;
+
+	/**
+	 * Launch the application.
+	 */
+	public static void main(final String[] args) {
+		EventQueue.invokeLater(new Runnable() {
+			public void run() {
+				if (args.length != 1)
+				{
+					JOptionPane.showMessageDialog(null, "Must specify ip address");
+				}
+				else
+				{
+					try {
+						PositionViewer window = new PositionViewer(args[0]);
+						window.frame.setVisible(true);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					
+				}
+			}
+		});
+	}
+
+	/**
+	 * Create the application.
+	 */
+	public PositionViewer(String args)
+	{
+		initialize(args);
+	}
+	
+	private double[] parseDouble(String str, int count) {
+		double[] args = new double[count];
+		int i = 0;
+
+		String[] tokens = str.trim().split(" ");
+
+		for (String token : tokens) {
+			try {
+				args[i] = Double.parseDouble(token);
+
+			} catch (NumberFormatException nfe) {
+				break;
+			}
+
+			if (++i >= count) {
+				break;
+			}
+		}
+
+		if (i == count) {
+			return (args);
+		}
+
+		return (null);
+	}
+	
+	public void disconnected()
+	{
+		connected.setText("Disconnected");
+		connected.setForeground(Color.red);
+	}
+
+	public void connected()
+	{
+		connected.setText("Connected");
+		connected.setForeground(Color.green);		
+	}
+	
+	public void commandReceived(String command)
+	{
+		switch(command.charAt(0))
+		{
+			case '+' : 
+				double[] args;
+			
+				if ((args = parseDouble(command.substring(1), 3)) != null)
+				{
+					m_panel.setPosition(args[0], args[1], args[2]);
+				}
+			break; 
+			
+			case 'c' :
+				
+				setAllianceColor(command.charAt(1) == 'r');
+				break;
+				
+		}
+		
+		
+	}
+	
+	/**
+	 * Initialize the contents of the frame.
+	 */
+	int m_mouseX;
+	int m_mouseY;
+		
+	double m_pathEndx, m_pathEndy;
+	
+	class BezierPoints{
+		double m_p0x;
+		double m_p0y;
+		double m_angle1;
+		double m_l1;
+		double m_p3x;
+		double m_p3y;
+		double m_angle2;
+		double m_l2;
+		
+		public BezierPoints(double p0x, double p0y, double angle1, double l1, double p3x, double p3y, double angle2, double l2) {
+			m_p0x = p0x;
+			m_p0y = p0y;
+			m_angle1 = angle1;
+			m_l1 = l1;
+			m_p3x = p3x;
+			m_p3y = p3y;
+			m_angle2 = angle2;
+			m_l2 = l2;
+		}
+	} 
+	
+	ArrayList <BezierPoints> m_lastPath; 
+	
+	
+//	private BezierQuintic createBezier(double p0x, double p0y, double angle1, double l1, double l3, double p3x, double p3y, double angle2, double l2, double l4) {
+//		BezierPoints points = new BezierPoints( p0x,  p0y,  angle1,  l1,  p3x,  p3y,  angle2,  l2);
+//		m_lastPath.add(points);
+//		
+//		return new BezierQuintic(p0x, p0y, angle1, l1, l3, p3x, p3y, angle2, l2, l4);
+//	}   
+    
+	private void onClick(MouseEvent event) { 
+//		m_mouseX = event.getX();
+//		m_mouseY = event.getY();
+//		Point mousePos = new Point(m_mouseX, m_mouseY);
+//		
+//		System.out.println(String.format("mouse: (%d,%d)", m_mouseX, m_mouseY));
+//		System.out.println(String.format("Field: (%f,%f)", m_xPos, m_yPos));	
+	}
+	
+	boolean m_allianceRed = false;
+	private void setAllianceColor(boolean red) {
+		if (m_allianceRed != red) {
+			
+			m_allianceRed = red;
+//			yFlipCoordinates();
+			redCheck.setSelected(red);
+//			teeterCordinates();
+			
+			m_panel.repaint();
+			
+		}
+	}
+		
+	private double normalizeAngle(double angle) {
+		angle = angle % 360;
+		if (angle > 180) {
+			angle -= 360;
+			
+		} else if (angle < -180){
+			angle += 360;
+		}
+		return angle;
+	}
+	
+	
+	JButtonSZ btnLock;
+	JCheckBoxSZ redCheck;
+	JLabelSZ message;
+	
+	private void sendPath(){
+		
+		m_network.SendMessage(String.format("P %d", m_lastPath.size()));
+		for (BezierPoints points: m_lastPath) {
+			m_network.SendMessage(String.format("B %f %f %f %f %f %f %f %f", points.m_p0x, points.m_p0y, points.m_angle1, points.m_l1,
+																			 points.m_p3x, points.m_p3y, points.m_angle2, points.m_l2));	
+		}
+		m_network.SendMessage("E");
+	}
+	
+	JRadioButtonSZ level1Button;
+	JRadioButtonSZ level2Button;
+	JRadioButtonSZ level3Button;
+	JRadioButtonSZ coneButton;
+	JRadioButtonSZ cubeButton;
+	JLabelSZ connected;
+		
+	private interface Control {
+		void resize(int width, int height);
+	}
+	
+	private ArrayList<Control> m_controls = new ArrayList<Control>();
+	
+	private class JLabelSZ extends JLabel implements Control {
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = -4361235814923354046L;
+		int m_x;
+		int m_y;
+		int m_width;
+		int m_height;
+		int m_fontHeight;
+		
+		JLabelSZ(String title) {
+			super(title);
+			
+			m_controls.add(this);
+		}
+		
+		@Override 
+		public void setBounds(int x, int y, int width, int height) {
+			m_x = x;
+			m_y = y;
+			m_width = width;
+			m_height = height;
+			
+			super.setBounds(x,  y, width, height);			
+		}
+		
+		@Override
+		public void setFont(Font font) {
+			m_fontHeight = font.getSize();
+		}
+		
+		@Override
+		public void resize(int width, int height) {
+			super.setBounds( m_x * width / k_designWidth,
+							 m_y * height / k_designHeight,
+							 m_width  * width / k_designWidth,
+							 m_height * height / k_designHeight);
+			
+			super.setFont(new Font(Font.SERIF, Font.PLAIN,  m_fontHeight * height / k_designHeight));
+		}	
+	}
+	
+	private class JRadioButtonSZ extends JRadioButton implements Control
+	{
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = -837154600923199949L;
+		
+		int m_x;
+		int m_y;
+		int m_width;
+		int m_height;
+		int m_fontHeight;
+		
+	    public void setBounds(int x, int y, int width, int height) {
+	    	m_x = x;
+	    	m_y = y;
+	    	m_width = width;
+	    	m_height = height;
+	    	
+	    	super.setBounds(x,  y,  width, height);
+	    }
+	    
+	    @Override
+		public void setFont(Font font) {
+	    	super.setFont(font);
+	    	
+	    	m_fontHeight = font.getSize();
+	    }
+
+		@Override
+		public void resize(int width, int height) {
+			super.setBounds( m_x * width / k_designWidth,
+							 m_y * height / k_designHeight,
+							 m_width  * width / k_designWidth,
+							 m_height * height / k_designHeight);
+			
+			super.setFont(new Font(Font.SERIF, Font.PLAIN,  m_fontHeight * height / k_designHeight));
+		}
+	}
+	
+	private class JCheckBoxSZ extends JCheckBox implements Control {
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = -6986813249292553889L;
+		int m_x;
+		int m_y;
+		int m_width;
+		int m_height;
+		
+		JCheckBoxSZ(String title)
+		{
+			super(title);
+			
+			m_controls.add(this);
+		}
+		
+	    public void setBounds(int x, int y, int width, int height) {
+	    	m_x = x;
+	    	m_y = y;
+	    	m_width = width;
+	    	m_height = height;
+	    	
+	    	super.setBounds(x,  y,  width, height);
+	    }
+	    
+		@Override
+		public void resize(int width, int height) {
+			super.setBounds( m_x * width / k_designWidth,
+					 m_y * height / k_designHeight,
+					 m_width  * width / k_designWidth,
+					 m_height * height / k_designHeight);			
+		}
+		
+	}
+	
+	private class JButtonSZ extends JButton implements Control {
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = -6986813249292553889L;
+		int m_x;
+		int m_y;
+		int m_width;
+		int m_height;
+		
+		JButtonSZ(String title)
+		{
+			super(title);
+			
+			m_controls.add(this);
+		}
+		
+	    public void setBounds(int x, int y, int width, int height) {
+	    	m_x = x;
+	    	m_y = y;
+	    	m_width = width;
+	    	m_height = height;
+	    	
+	    	super.setBounds(x,  y,  width, height);
+	    }
+	    
+		@Override
+		public void resize(int width, int height) {
+			super.setBounds( m_x * width / k_designWidth,
+					 m_y * height / k_designHeight,
+					 m_width  * width / k_designWidth,
+					 m_height * height / k_designHeight);			
+		}
+		
+	}
+	
+	private static final int k_fieldDisplayWidth = 1440;
+	private static final int k_designWidth = 1800;
+	private static final int k_designHeight = 800;
+
+	private void initialize(String host) {
+
+       	Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+       	
+		frame = new JFrame();
+		frame.setBounds(0, 0, screenSize.width - 10, screenSize.height - 50); //sets the frame of the window created
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.getContentPane().setLayout(null);
+		
+		frame.addComponentListener(new ComponentListener() {
+			@Override
+			public void componentResized(ComponentEvent e) {
+				// TODO Auto-generated method stub
+		          int w = e.getComponent().getWidth();
+		          int h = e.getComponent().getHeight();	
+		          
+		          for (Control control : m_controls)
+		          {
+		        	  control.resize(w, h);
+		          }
+			}
+
+			@Override
+			public void componentMoved(ComponentEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void componentShown(ComponentEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void componentHidden(ComponentEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+		    });
+				
+		connected = new JLabelSZ("Disconnected");
+		connected.setBounds(k_fieldDisplayWidth+10, 360, 400, 54);
+		connected.setFont(new Font(Font.SERIF, Font.PLAIN, 48));
+		connected.setForeground(Color.red);
+		frame.getContentPane().add(connected);
+		
+		message = new JLabelSZ("Message");
+		message.setBounds(10, k_designHeight - 70, 1500, 24);
+		message.setFont(new Font(Font.SERIF, Font.PLAIN, 16));
+		frame.getContentPane().add(message);
+		
+		redCheck = new JCheckBoxSZ("Red");
+		redCheck.addActionListener(new ActionListener()
+		{ 
+			public void actionPerformed(ActionEvent arg0)
+			{
+				synchronized(m_lock)
+				{
+					setAllianceColor(!m_allianceRed);			
+				}
+			}
+			
+		}); 
+		redCheck.setBounds(10, (k_designHeight-100), 100, 23);
+		frame.getContentPane().add(redCheck);
+		
+		JButtonSZ btnSave = new JButtonSZ("Clear");
+		btnSave.addActionListener(new ActionListener() 
+		{
+			public void actionPerformed(ActionEvent arg0) 
+			{
+				synchronized(m_lock)
+				{
+					
+					m_posList.clear();
+					m_panel.repaint();
+				}
+			}
+		});
+		btnSave.setBounds(10, 640, 160, 30);
+		frame.getContentPane().add(btnSave);
+		
+		// Command buttons
+		JButtonSZ button1 = new JButtonSZ("Start Log");
+		button1.setBounds(10, 600, 160, 30);
+		frame.getContentPane().add(button1);
+		button1.addActionListener(new ActionListener()
+		{ 
+			public void actionPerformed(ActionEvent arg0)
+			{
+				synchronized(m_lock)
+				{
+					m_network.SendMessage("B 1");		
+				}
+			}			
+		});	
+
+		JButtonSZ button2 = new JButtonSZ("End Log");
+		button2.setBounds(180, 600, 160, 30);
+		frame.getContentPane().add(button2);
+		button2.addActionListener(new ActionListener()
+		{ 
+			public void actionPerformed(ActionEvent arg0)
+			{
+				synchronized(m_lock)
+				{
+					m_network.SendMessage("B 2");		
+				}
+			}			
+		});	
+
+
+		JButtonSZ button3 = new JButtonSZ("Start Dashboard");
+		button3.setBounds(350, 600, 160, 30);
+		frame.getContentPane().add(button3);
+		button3.addActionListener(new ActionListener()
+		{ 
+			public void actionPerformed(ActionEvent arg0)
+			{
+				synchronized(m_lock)
+				{
+					m_network.SendMessage("B 3");		
+				}
+			}			
+		});	
+
+		JButtonSZ button4 = new JButtonSZ("End Dashboard");
+		button4.setBounds(520, 600, 160, 30);
+		frame.getContentPane().add(button4);
+		button4.addActionListener(new ActionListener()
+		{ 
+			public void actionPerformed(ActionEvent arg0)
+			{
+				synchronized(m_lock)
+				{
+					m_network.SendMessage("B 4");		
+				}
+			}			
+		});	
+		
+		m_panel = new CustomPanel();
+		m_panel.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseReleased(MouseEvent event) 
+			{
+				if (event.getButton() == MouseEvent.BUTTON3)
+				{
+					int	x	= event.getX();
+					int	y	= event.getY();
+					double	dx = x - m_mouseX;
+					double	dy = y - m_mouseY;
+					
+					if (dx != 0)
+					{
+						m_yaw = (int) (Math.atan2(dx, dy) * 180 / Math.PI);
+					}
+					m_xPos = m_panel.isx(m_mouseY);
+					m_yPos = m_panel.isy(m_mouseX);
+					m_visible = true;
+					
+					m_panel.repaint();
+					
+				}
+				else
+				{
+					onClick(event);
+					message.setText(String.format("%d,%d", event.getX(), event.getY()));
+				}
+			}
+			
+			@Override
+			public void mouseMoved(MouseEvent event)
+			{
+				message.setText(String.format("%d,%d", event.getX(), event.getY()));
+			}
+			
+			
+			@Override
+			public void mousePressed(MouseEvent event)
+			{
+				m_mouseX = event.getX();
+				m_mouseY = event.getY();
+			}
+			@Override
+			public void mouseClicked(MouseEvent event) {
+
+			}
+		});
+		
+		m_panel.setBounds(0, 0, (k_fieldDisplayWidth), (int) ((k_fieldDisplayWidth) * k_fieldWidth / k_fieldLength));
+		frame.getContentPane().add(m_panel);
+		m_panel.computeScale();
+					
+		System.out.println("host = " + host);
+		
+		m_network.Connect(host, 5802);
+	}
+}
